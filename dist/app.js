@@ -4,10 +4,10 @@
   const $$ = (q, el = document) => [...el.querySelectorAll(q)];
   const fmt = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 });
   const journeyNotes = [
-    'Alguien busca tu servicio cerca. Tu ficha y tus reseñas le ayudan a elegir.',
-    'La consulta encuentra una respuesta clara, incluso cuando has cerrado.',
-    'El siguiente paso está visible: elegir un horario y confirmar una cita.',
-    'Vemos cuántos mensajes llegan, cuántas citas se agendan y qué mejorar después.'
+    'Un reel útil, una recomendación o una búsqueda. El primer contacto debe llevar a algo más.',
+    'Tu contenido y tu oferta dan contexto. La consulta encuentra una respuesta clara.',
+    'Una reserva, una llamada o una propuesta: el siguiente paso depende de lo que vendes.',
+    'Vemos de dónde llegan las consultas y qué oportunidades generan. Después, ajustamos.'
   ];
   $$('.journey-node').forEach(button => button.addEventListener('click', () => {
     const index = Number(button.dataset.journey);
@@ -34,6 +34,27 @@
     }));
   });
   const menu = $('.menu-toggle');
+  const audienceExamples = {
+    personal: ['CONSULTORÍA · REEL EDUCATIVO', '«No te faltan ideas.\nTe falta una dirección.»', 'Un problema real. Tu criterio. Un siguiente paso.', 'Un contenido que responde a la duda de tu cliente ideal, no a todo el mundo.', 'Tu método, tu experiencia y una oferta que se entiende en tu perfil y en tu web.', 'Del enlace de tu bio a una consulta o llamada. Después, seguimiento y propuesta.'],
+    local: ['NEGOCIO LOCAL · REEL DE SERVICIO', '«Así elegimos el tratamiento\nque tu piel necesita.»', 'Tu servicio. Una duda frecuente. Una reserva.', 'Un vídeo que explica tu servicio a personas que pueden visitar tu negocio.', 'Tu equipo, tu espacio y reseñas reales que ayudan a elegir con confianza.', 'Del perfil a WhatsApp o a tu agenda. Una respuesta clara para convertir la consulta en cita.']
+  };
+  const audienceTabs = $$('[data-audience]');
+  function setAudience(tab) {
+    audienceTabs.forEach(button => { const active = button === tab; button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1; });
+    $('#audience-example').setAttribute('aria-labelledby', tab.id);
+    ['#content-category', '#content-hook', '#content-format', '#flow-attract', '#flow-trust', '#flow-convert'].forEach((selector, index) => { $(selector).textContent = audienceExamples[tab.dataset.audience][index]; });
+    document.dispatchEvent(new CustomEvent('ratio:example-change'));
+  }
+  audienceTabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => setAudience(tab));
+    tab.addEventListener('keydown', event => {
+      let next;
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') next = 1 - index;
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = 1;
+      if (next !== undefined) { event.preventDefault(); setAudience(audienceTabs[next]); audienceTabs[next].focus(); }
+    });
+  });
   function closeMenu() { menu.setAttribute('aria-expanded', 'false'); $('#navigation').classList.remove('is-open'); menu.setAttribute('aria-label', 'Abrir menú'); }
   menu.addEventListener('click', () => { const open = menu.getAttribute('aria-expanded') !== 'true'; menu.setAttribute('aria-expanded', String(open)); $('#navigation').classList.toggle('is-open', open); menu.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú'); });
   $$('#navigation a').forEach(a => a.addEventListener('click', closeMenu));
@@ -51,6 +72,7 @@
     const line = xs.map((x,i) => `${i?'L':'M'}${x} ${ys[i]}`).join('');
     $('#chart-line').setAttribute('d',line); $('#chart-area').setAttribute('d',`${line}V106H12Z`); $('#chart-dot').setAttribute('cy',String(ys[3])); $('.chart').setAttribute('aria-label',`Ejemplo: citas por semana. ${m.name}: ${m.weeks.join(', ')} citas.`);
     $$('.month-tabs button').forEach(b => {const active=Number(b.dataset.month)===index;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
+    document.dispatchEvent(new CustomEvent('ratio:month-change'));
   }
   $$('.month-tabs button').forEach(b => b.addEventListener('click',() => setMonth(Number(b.dataset.month))));
   setMonth(2);
@@ -58,6 +80,7 @@
   function setService(index, focus=false) {
     serviceTabs.forEach((tab,i) => {const active=i===index; tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;$('.service-symbol',tab).textContent=active?'−':'+'; $(`#service-${i}`).hidden=!active;});
     if(focus) serviceTabs[index].focus();
+    document.dispatchEvent(new CustomEvent('ratio:service-change', { detail: { index } }));
   }
   serviceTabs.forEach((tab,i) => {
     tab.addEventListener('click',()=>setService(i));
@@ -79,8 +102,8 @@
   form.addEventListener('submit',e=>{
     e.preventDefault();$('#form-error').hidden=true;if(!form.reportValidity())return;
     const data=new FormData(form),name=String(data.get('name')).trim(),business=String(data.get('business')).trim(),link=String(data.get('link')).trim();
-    if(!name||!business||!link){showError('Añade tu nombre, tu negocio y un enlace para preparar la auditoría.');return;}
-    const message=`¡Kaixo, Nicolás! Soy ${name}, de ${business} (${data.get('sector')}). Me gustaría solicitar la auditoría gratuita.\n\nMi Instagram o web: ${link}\n\nGracias.`;
+    if(!name||!business||!link){showError('Añade tu nombre, tu negocio o marca y un enlace para preparar la auditoría.');return;}
+    const message=`¡Kaixo, Nicolás! Soy ${name}, de ${business} (${data.get('sector')}). Me gustaría solicitar la auditoría gratuita.\n\nMi objetivo: ${data.get('goal')}\nMi Instagram o web: ${link}\n\nGracias.`;
     if(configuredPhone){window.location.href=`https://wa.me/${phone}?text=${encodeURIComponent(message)}`;return;}
     requestText.value=message;$('#request-status').textContent='Preparar este mensaje no envía una solicitud.';$('#copy-request').firstChild.textContent='Copiar solicitud ';dialog.showModal();
   });
@@ -90,5 +113,4 @@
     try{if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(requestText.value);else{requestText.focus();requestText.select();if(!document.execCommand('copy'))throw new Error('copy');}$('#request-status').textContent='Mensaje copiado. Ya puedes pegarlo y compartirlo.';$('#copy-request').firstChild.textContent='Solicitud copiada ';}catch{$('#request-status').textContent='Selecciona el texto para copiarlo o descárgalo.';requestText.focus();requestText.select();}
   });
   $('#download-request').addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([requestText.value],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='solicitud-auditoria-ratio.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$('#request-status').textContent='Solicitud descargada. Aún no se ha enviado.';});
-  if('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches){const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('in-view');observer.unobserve(entry.target);}});},{threshold:.08});$$('.section h2,.method-steps li,.problem-list article').forEach(el=>{el.classList.add('reveal');observer.observe(el);});}
 })();

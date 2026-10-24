@@ -1,0 +1,17 @@
+{
+  "name": "ratio-agency-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sitio web de ratio: Basauri, Bizkaia",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "node scripts/verify.mjs",
+    "preview": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "node scripts/verify.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.152.0"
+  }
+}
